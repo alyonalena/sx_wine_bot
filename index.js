@@ -1,12 +1,18 @@
 require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 
 const { Bot, GrammyError, HttpError, Keyboard, InlineKeyboard } = require('grammy');
 
-
-const { hydrate } = require('@grammyjs/hydrate')
-
 const bot = new Bot(process.env.BOT_API_KEY);
-bot.use(hydrate());
+
+const app = express();
+
+app.use(express.json());
+app.use(cors());
+
+
+//---------Bot Logic---------
 
 bot.api.setMyCommands([
     {
@@ -18,22 +24,9 @@ bot.api.setMyCommands([
         description: 'Сделать заказ'
     },
     {
-        command: 'menu',
-        description: 'Получить меню'
+        command: 'send_msg_to_admin',
+        description: 'Отправить сообщение админу'
     }
-    /*
-    {
-        command: 'mood',
-        description: 'Узнать настроение'
-    },
-    {
-        command: 'share',
-        description: 'Узнать настроение'
-    },
-    {
-        command: 'inline_keyboard',
-        description: 'inline_keyboard'
-    }*/
 ])
 
 bot.command('shop', async (ctx) => {
@@ -51,12 +44,19 @@ bot.command('share', async (ctx) => {
     })
 });
 
+bot.command('send_msg_to_admin', async (ctx) => {
+
+    await bot.api.sendMessage(process.env.ADMIN_CHAT_ID, `Запрос от пользователя ${ctx.msg.chat.username}`);
+
+    await ctx.reply('Запрос админу отправлен')
+});
+
 bot.command('inline_keyboard', async (ctx) => {
     console.log(ctx);
     const inlineKeyboard = new InlineKeyboard()
-        .url("Перейти в магазин", "https://t.me/+-5u7rUm-7LZlMzAy") 
+        .url("Перейти в магазин", "https://t.me/")
 
-    await ctx.reply("Выьерите цифру", {
+    await ctx.reply("Выберите цифру", {
         reply_markup: inlineKeyboard
     })
 });
@@ -66,66 +66,6 @@ bot.callbackQuery(["Button_1", "Button_2", "Button_3"], async (ctx) => {
     await ctx.reply('Вы выбрали цифру')
 })
 
-
-bot.command('mood', async (ctx) => {
-    console.log(ctx);
-
-    const moodLabels = ['Хорошо', 'Норм', 'Плохо']
-    const rows = moodLabels.map(label => {
-        return Keyboard.text(label)
-    })
-
-    const moodKeyboard = Keyboard.from(rows).resized()
-
-    await ctx.reply("Как настроение?", {
-        reply_markup: moodKeyboard
-    })
-});
-
-bot.hears('Хорошо',async (ctx) => {
-    await ctx.reply("Класс!", {
-        reply_markup: { remove_keyboard: true }
-    })
-});
-
-bot.on(':voice', async (ctx) => {
-    console.log(ctx);
-    await ctx.reply('pin')
-    ctx.reply('I got audio')
-});
-
-bot.hears('', async (ctx) => {
-    console.log(ctx);
-    ctx.reply('ping')
-});
-
-
-bot.on(':voice', async (ctx) => {
-    console.log(ctx);
-    ctx.reply('I got audio')
-});
-
-bot.on('::url', async (ctx) => {
-    console.log(ctx);
-    ctx.reply('I got url')
-});
-
-bot.command('start', async (ctx) => {
-    console.log(ctx);
-    ctx.reply('Hello! I am SX Wine Bot')
-});
-
-bot.command(['say_hello', 'hi'], async (ctx) => {
-    console.log(ctx);
-    ctx.reply('Hello!')
-});
-
-/*
-bot.on('message', async (ctx) => {
-    console.log(ctx);
-    ctx.reply('I will think about it')
-});
-*/
 
 bot.catch((err) => {
     const ctx = err.ctx;
@@ -141,3 +81,23 @@ bot.catch((err) => {
 });
 
 bot.start();
+
+//---------request from MiniApp---------
+
+app.post('/web-data', async (req, res) => {
+    console.log(req.body)
+
+   try {
+        await bot.api.sendMessage(
+            process.env.ADMIN_CHAT_ID, 
+            `Запрос от пользователя`
+        );
+        return res.status(200).json({});
+    } catch (e) {
+        return res.status(500).json({})
+    }
+})
+
+const PORT = process.env.PORT || 8000;
+
+app.listen(PORT, () => console.log('server started on PORT ' + PORT))
