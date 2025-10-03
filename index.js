@@ -90,7 +90,7 @@ app.post('/web-data', async (req, res) => {
    try {
         await bot.api.sendMessage(
             process.env.ADMIN_CHAT_ID, 
-            `Запрос от пользователя`
+            `!!! Пользователь ${req.body.userName} интересуется вином ${req.body.wineInfo}`
         );
         return res.status(200).json({});
     } catch (e) {
